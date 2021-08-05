@@ -1,21 +1,17 @@
-from setuptools import setup, find_packages
-
-with open("README.md", "r") as f:
-    long_description = f.read()
-
+import pathlib
+from setuptools import setup
+HERE = pathlib.Path(__file__).parent
+README = (HERE / "README.md").read_text()
 setup(
-    name="tween",
-    version="0.0.1",
-    author="Ivar Fatland",
-    author_email="fatland99@hotmail.com",
-    description="A small tweening module",
-    long_description=long_description,
-    long_description_content_type="text/markdown",
-    url="https://github.com/roodletoof/tween",
-    packages=find_packages(),
-    classifiers=[
-        "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",
-        "Operating System :: OS Independent",
-    ]
+  name="tween",
+  version="0.0.1",
+  description="A small tweening module",
+  long_description=README,
+  long_description_content_type="text/markdown",
+  author="Ivar Fatland",
+  author_email="fatland99@hotmail.com",
+  license="MIT",
+  packages=["tween"],
+  zip_safe=False,
+  install_requires = ["PyTweening==1.0.3"]
 )

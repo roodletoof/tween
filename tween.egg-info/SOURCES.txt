@@ -1,0 +1,12 @@
+LICENSE
+README.md
+setup.py
+tween/__init__.py
+tween/__main__.py
+tween/tween.py
+tween.egg-info/PKG-INFO
+tween.egg-info/SOURCES.txt
+tween.egg-info/dependency_links.txt
+tween.egg-info/not-zip-safe
+tween.egg-info/requires.txt
+tween.egg-info/top_level.txt
