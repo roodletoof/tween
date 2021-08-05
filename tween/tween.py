@@ -3,7 +3,8 @@ import pytweening
 
 function_dictionary = {} #Making all pytweening functions accessible as a str index
 for item in inspect.getmembers(pytweening, inspect.isfunction):
-    if not "_" == item[0][0]: #dismissing local functions
+    if not "_" == item[0][0] and not "getLine" == item[0] and \
+       not "getPointOnLine" == item[0]:
         #item[0] is function name of type str
         #item[1] id the actual function
         function_dictionary[item[0]] = item[1]
@@ -37,7 +38,7 @@ class Tween:
                 tween_instance.delete = True
 
 
-    def update(self, dt):
+    def _update(self, dt):
         if not self.delete:
             if self.delay <= 0.0:
 
@@ -107,9 +108,9 @@ def to(container, key, end_value, time, ease_type = "linear", delay = 0.0, _grou
         return tween_instance
 
 
-def update(dt, _group = tweens): #in seconds!
+def update(passed_time, _group = tweens): #in seconds!
     for tween_instance in _group:
-        tween_instance.update(dt)
+        tween_instance._update(passed_time)
 
     #delete all finished tweens
     _group = [tween for tween in _group if tween.delete == False]
@@ -126,11 +127,6 @@ class Group:
         update(dt, self.tweens)
 
 
-def print_ease_type_functions():
-    for item in inspect.getmembers(pytweening, inspect.isfunction):
-        if not "_" == item[0][0]: #dismissing local functions
-            print(item[0] + "(float between 0 and 1) --> float")
-
-
-if __name__ == '__main__':
-    print_ease_type_functions()
+def print_ease_types():
+    for name in function_dictionary:
+        print(name)
