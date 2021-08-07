@@ -11,17 +11,16 @@ for item in inspect.getmembers(pytweening, inspect.isfunction):
 
 
 class Tween:
-
-    def __init__(self, container, key, is_class: bool, end_value, time, ease_type, delay, tween_instances_list):
+    def __init__(self, container, key, is_object: bool, end_value, time, ease_type, delay, tween_instances_list):
+        self.is_object = is_object
         self.container = container
         self.key = key
-        self.is_class = is_class
         self.end_value = end_value
         self.time = time
         self.life = 0.0
         self.ease_type = ease_type
         self.delay = delay
-        if self.is_class:
+        if self.is_object:
             self.start_value = getattr(container, key)
         else:
             self.start_value = container[key]
@@ -35,11 +34,11 @@ class Tween:
 
         for tween_instance in tween_instances_list:
             if tween_instance.container == self.container and tween_instance.key == self.key:
-                tween_instance.delete = True
+                tween_instance._ready_for_garbage_collection()
 
     def _ready_for_garbage_collection(self):
-        self.delete = True
         self.container = None
+        self.delete = True
 
     def _update(self, dt):
         if not self.delete:
@@ -56,7 +55,7 @@ class Tween:
                 self.life += dt
                 tween_value = self.difference * function_dictionary[self.ease_type](min(1, self.life / self.time))
 
-                if self.is_class:
+                if self.is_object:
                     setattr(self.container, self.key, self.start_value + tween_value)
                     if self.life >= self.time:
                         setattr(self.container, self.key, self.end_value)

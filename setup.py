@@ -4,7 +4,7 @@ HERE = pathlib.Path(__file__).parent
 README = (HERE / "README.md").read_text()
 setup(
   name="tween",
-  version="0.0.1",
+  version="0.0.2",
   description="A small tweening module",
   long_description=README,
   long_description_content_type="text/markdown",
@@ -13,5 +13,6 @@ setup(
   license="MIT",
   packages=["tween"],
   zip_safe=False,
-  install_requires = ["PyTweening==1.0.3"]
+  install_requires = ["PyTweening==1.0.3"],
+  url = "https://github.com/roodletoof/tween"
 )
