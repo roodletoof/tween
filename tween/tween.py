@@ -37,6 +37,9 @@ class Tween:
             if tween_instance.container == self.container and tween_instance.key == self.key:
                 tween_instance.delete = True
 
+    def _ready_for_garbage_collection(self):
+        self.delete = True
+        self.container = None
 
     def _update(self, dt):
         if not self.delete:
@@ -57,21 +60,21 @@ class Tween:
                     setattr(self.container, self.key, self.start_value + tween_value)
                     if self.life >= self.time:
                         setattr(self.container, self.key, self.end_value)
-                        self.delete = True
+                        self._ready_for_garbage_collection()
                         for function in self.complete_functions:
                             function()
                 else:
                     self.container[self.key] = self.start_value + tween_value
                     if self.life >= self.time:
                         self.container[self.key] = self.end_value
-                        self.delete = True
+                        self._ready_for_garbage_collection()
                         for function in self.complete_functions:
                             function()
             else:
                 self.delay -= dt
 
     def stop(self):
-        self.delete = True
+        self._ready_for_garbage_collection()
 
     def on_start(self, func):
         self.start_functions.append(func)
