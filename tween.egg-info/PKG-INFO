@@ -1,8 +1,8 @@
 Metadata-Version: 2.1
 Name: tween
-Version: 0.0.1
+Version: 0.0.2
 Summary: A small tweening module
-Home-page: UNKNOWN
+Home-page: https://github.com/roodletoof/tween
 Author: Ivar Fatland
 Author-email: fatland99@hotmail.com
 License: MIT
@@ -20,7 +20,7 @@ A tweening library inspired by flux by rxi. Using the PyTweening module by AlSwe
 ```python
 import sys
 import pygame
-from pygame.locals import *
+from pygame.locals import QUIT
 import tween
 
 pygame.init()
@@ -84,6 +84,8 @@ The **container** argument can be a list, dictionary or object.
 
 **easing_type** is a string describing the easing function you want to use. There is a list of all types at the bottom of this readme.
 
+_If there already exists a tween for that container and key, the existing tween will delete itself os the new one can start_
+
  _The **_group** argument should not be passed._
 
 Instead you should create an instance of the **tween.Group** class, and call its **.to** method
@@ -91,7 +93,7 @@ Instead you should create an instance of the **tween.Group** class, and call its
 ```python
 tweening_group = tween.Group()
 
-tweening_group.to(container, key, final_value, time_in_seconds, easing_type = "linear") --> tween.Tween
+tweening_group.to(container, key, final_value, time, easing_type = "linear") --> tween.Tween
 ```
 
 The tween module and all instances of **tween.Group** has an **update** function/method.
