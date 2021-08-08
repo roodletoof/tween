@@ -115,7 +115,17 @@ def update(passed_time, _group = tweens): #in seconds!
         tween_instance._update(passed_time)
 
     #delete all finished tweens
-    _group = [tween for tween in _group if tween.delete == False]
+    del_counter = 0
+    original_list_len = len(_group)
+    for item_key in range(original_list_len):
+        item = _group[item_key]
+        current_list_len = original_list_len - del_counter
+        if item.delete == True:
+            del_counter += 1
+        else:
+            _group[item_key - del_counter] = item
+    for i in range(del_counter):
+        _group.pop()
 
 
 
