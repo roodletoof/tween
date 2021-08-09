@@ -72,7 +72,7 @@ The **container** argument can be a list, dictionary or object.
 
 **easing_type** is a string describing the easing function you want to use. There is a list of all types at the bottom of this readme.
 
-_If there already exists a tween for that container and key, the existing tween will delete itself os the new one can start_
+_If there already exists a tween for that container and key, the existing tween will delete itself so the new one can start_
 
  _The **_group** argument should not be passed._
 
