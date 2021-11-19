@@ -51,19 +51,19 @@ while 1:
   dt = clock.tick(60) / 1000.0 #Divide by 1000.0 to get dt (time_passed) in seconds
 
 ```
-Unless there is a typo in my code, the **hero** object should move from **(y = 200, x = 0) to (y = 200, x = 400)** in the span of exactly 5 seconds. Using **"easeInOutQuad"** the sprite will slowly accelerate and decelerate.
+The **hero** object should move from **(y = 200, x = 0) to (y = 200, x = 400)** in the span of 5 seconds. Using **"easeInOutQuad"** the sprite will slowly accelerate and decelerate.
 
 
 ### Functions and classes
 ```python
-tween.to(container, key, final_value, time, easing_type = "linear", _group = tween.tweens) --> tween.Tween
+tween.to(container, key, final_value, time, easing_type = "linear", delay = 0.0) -> tween.Tween
 ```
 
 Creates and adds a Tween object to the default tween module group.
 
 The **container** argument can be a list, dictionary or object.
-1.  If the **container** is a list, the **key** must be an integer.
-2.  If the **container** is a dictionary, the **key** must be a string.
+1.  If the **container** is a dictionary, the **key** can be any non-mutable type.
+2.  If the **container** is a list, the **key** must be an integer.
 3.  If the **container** is an object, the **key** must be a string.
 
 **final_value** is the target value the tween will stop at.
@@ -72,28 +72,25 @@ The **container** argument can be a list, dictionary or object.
 
 **easing_type** is a string describing the easing function you want to use. There is a list of all types at the bottom of this readme.
 
-_If there already exists a tween for that container and key, the existing tween will delete itself so the new one can start_
+**delay** is the time the tween will wait before it starts in seconds.
 
- _The **_group** argument should not be passed._
+_If there already exists a tween for that container and key, the existing tween will be deleted so the new one can start_
 
-Instead you should create an instance of the **tween.Group** class, and call its **.to** method
 
 ```python
 tweening_group = tween.Group()
 
-tweening_group.to(container, key, final_value, time, easing_type = "linear") --> tween.Tween
+tweening_group.to(container, key, final_value, time, easing_type = "linear") -> tween.Tween
 ```
 
-The tween module and all instances of **tween.Group** has an **update** function/method.
+The tween module and all objects of **tween.Group** type has an **update** function/method.
 
 ```python
-tween.update(passed_time, _group = tween.tweens)
+tween.update(passed_time)
 ```
 ```python
 tween.Group.update(passed_time)
 ```
-
-_The **_group** argument should not be passed here either. The tween module will pick the rigth group for you._
 
 **passed_time** is the time since the last update was called in _seconds_.
 
@@ -145,6 +142,6 @@ You can append as many functions as you like.
 
 If you want to get a list of all the easing types without reading this readme, you can do:
 ```python
-tween.print_ease_types()
+print(tween.get_ease_types())
 ```
-or simply run the module directly in the terminal: `python3 -m tween`
+or run the module directly in the terminal: `python3 -m tween`
