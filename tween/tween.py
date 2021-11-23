@@ -169,6 +169,7 @@ def _update(passed_time: float, group: list): #in seconds!
 
 def update(passed_time: float) -> None:
     '''
+    dt is the number of seconds since last update.
     Update all tweens in the default tween group.
     This will call all appropriate functions attatched to tweens, and end finished tweens.
     Finished tweens will be deleted from its group.
@@ -199,6 +200,7 @@ class Group:
         _to(container, key, end_value, time, ease_type, delay, self.tweens)
     def update(self, dt) -> None:
         '''
+        dt is the number of seconds since last update.
         Update all tweens in this tween group.
         This will call all appropriate functions attatched to tweens, and end finished tweens.
         Finished tweens will be deleted from its group.
@@ -206,11 +208,8 @@ class Group:
         _update(dt, self.tweens)
 
 
-def get_ease_types() -> list[str]:
+def get_ease_types() -> tuple[str]:
     '''
-    Returns a list of all available ease types.
+    Returns a tuple of all available ease types.
     '''
-    ease_types: list = []
-    for name in function_dictionary:
-        ease_types.append(name)
-    return ease_types
+    return tuple(function_dictionary.keys())
