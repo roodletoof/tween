@@ -157,13 +157,11 @@ def _update(passed_time: float, group: list): #in seconds!
 
     #delete all finished tweens
     del_counter = 0
-    original_list_len = len(group)
-    for item_key in range(original_list_len):
-        item = group[item_key]
-        if item.delete == True:
+    for index, tween in enumerate(group):
+        if tween.delete is True:
             del_counter += 1
         else:
-            group[item_key - del_counter] = item
+            group[index - del_counter] = tween
     for _ in range(del_counter):
         group.pop()
 
