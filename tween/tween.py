@@ -1,118 +1,98 @@
 import inspect
 import pytweening
 
-function_dictionary = {} #Making all pytweening functions accessible by str name.
-for item in inspect.getmembers(pytweening, inspect.isfunction):
-    if not "_" == item[0][0] and\
-    not "getLine" == item[0] and \
-    not "getPointOnLine" == item[0]:
-        #item[0] is function name of type str
-        #item[1] id the actual function
-        function_dictionary[item[0]] = item[1]
+_function_dictionary = {} #Making all pytweening functions accessible by str name.
+for name, func in inspect.getmembers(pytweening, inspect.isfunction):
+    if not "_" == name[0] and\
+    not "getLine" == name and\
+    not "getPointOnLine" == name:
+        _function_dictionary[name] = func
 
+def _1_True_rest_is_False():
+    yield True
+    while True:
+        yield False
+
+def _make_generator_callable(gen):
+    return lambda : next(gen)
 
 class Tween:
-    def __init__(self, container, key, is_object: bool, end_value, time, ease_type, delay, tween_instances_list):
-        self.is_object = is_object
+    def __init__(self, container, key, is_object: bool, end_value: float, time: float, ease_type: str, delay: float, tween_instances_list: list['Tween']):
         self.container = container
         self.key = key
-        self.end_value = end_value
-        self.time = time
-        self.life = 0.0
-        self.ease_type = ease_type
+        self.container_not_dict_or_list = is_object
+        
+        self.target_time = time
+        self.time_lived = 0.0
         self.delay = delay
-        if self.is_object:
+        
+        self.ease_func = _function_dictionary[ease_type]
+        
+        if self.container_not_dict_or_list:
             self.start_value = getattr(container, key)
         else:
             self.start_value = container[key]
+        self.end_value = end_value
         self.difference = self.end_value - self.start_value
+        
         self.delete = False
-
-        self.has_started = False
-        self.start_functions = []
-        self.update_functions = []
-        self.complete_functions = []
-
-        for tween_instance in tween_instances_list:
-            if tween_instance.container is self.container and tween_instance.key == self.key:
-                tween_instance._ready_for_garbage_collection()
+        
+        self.tween_instances_list = tween_instances_list
+        
+        self._first_time_this_runs = _make_generator_callable(_1_True_rest_is_False())
 
     def _ready_for_garbage_collection(self):
         '''
-        Do not call this function directly.
+        Marks this tween to be deleted, and removes references to objects and list
+        so that the tween can be garbage collected.
         '''
         del self.container
-        del self.start_functions
-        del self.update_functions
-        del self.complete_functions
+        del self.tween_instances_list
         self.delete = True
+
+
+    def _set_container_value(self, value):
+        if self.container_not_dict_or_list:
+            setattr(self.container, self.key, value)
+        else:
+            self.container[self.key] = value
+
+    def _delete_colliding_tweens(self):
+        for tween_instance in self.tween_instances_list:
+            if tween_instance.container is self.container\
+            and tween_instance.key == self.key:
+                tween_instance._ready_for_garbage_collection()
+            
 
     def _update(self, dt):
         '''
-        Do not call this function directly.
-        Call tween.update() or Group.update()
+        Update the current value based on time passed since last update.
+        Will alter specified value of the container this Tween is attatched to.
         '''
+
+        if self.delay >= 0:
+            self.delay -= dt
+            return
+
+        if self._first_time_this_runs():
+            self._delete_colliding_tweens()
+
         if not self.delete:
-            if self.delay <= 0.0:
+            self.time_lived += dt
+            tween_value = self.difference * self.ease_func(min(1, self.time_lived / self.target_time))
+            self._set_container_value(self.start_value + tween_value)
 
-                if self.has_started == False:
-                    for function in self.start_functions:
-                        function()
-                    self.has_started = True
-
-                for function in self.update_functions:
-                    function()
-
-                self.life += dt
-                tween_value = self.difference * function_dictionary[self.ease_type](min(1, self.life / self.time))
-
-                if self.is_object:
-                    setattr(self.container, self.key, self.start_value + tween_value)
-                    if self.life >= self.time:
-                        setattr(self.container, self.key, self.end_value)
-                        for function in self.complete_functions:
-                            function()
-                        self._ready_for_garbage_collection()
-                else:
-                    self.container[self.key] = self.start_value + tween_value
-                    if self.life >= self.time:
-                        self.container[self.key] = self.end_value
-                        for function in self.complete_functions:
-                            function()
-                        self._ready_for_garbage_collection()
-            else:
-                self.delay -= dt
+        if self.time_lived >= self.target_time:
+            self._set_container_value(self.end_value)
+            self._ready_for_garbage_collection()
+            
 
     def stop(self) -> None:
         '''
-        Stops the tween from playing, and readies itself for garbage collection.
+        Stop and delete tween.
         '''
         self._ready_for_garbage_collection()
 
-    def on_start(self, func) -> None:
-        '''
-        Add a function to run on the start of the tween.
-        If the tween has already started, the function will not be called.
-        The function will not be called with any arguments.
-        You can add as many functions as you like.
-        '''
-        self.start_functions.append(func)
-
-    def on_update(self, func) -> None:
-        '''
-        Add a function to run on every update.
-        The function will not be called with any arguents.
-        You can add as many functions as you like.
-        '''
-        self.update_functions.append(func)
-
-    def on_complete(self, func) -> None:
-        '''
-        Add a function to run when the tween is completed.
-        The function will not be called with any arguments.
-        You can add as many functions as you like.
-        '''
-        self.complete_functions.append(func)
 
 
 tweens = [] #Contains all instances of tween
@@ -151,14 +131,14 @@ def to(container, key, end_value: float, time: float, ease_type: str = 'linear',
     '''
     return _to(container, key, end_value, time, ease_type, delay, tweens)
 
-def _update(passed_time: float, group: list): #in seconds!
+def _update(passed_time: float, group: list[Tween]): #in seconds!
     for tween_instance in group:
         tween_instance._update(passed_time)
 
     #delete all finished tweens
     del_counter = 0
     for index, tween in enumerate(group):
-        if tween.delete is True:
+        if tween.delete:
             del_counter += 1
         else:
             group[index - del_counter] = tween
@@ -210,4 +190,4 @@ def get_ease_types() -> tuple[str]:
     '''
     Returns a tuple of all available ease types.
     '''
-    return tuple(function_dictionary.keys())
+    return tuple(_function_dictionary.keys())
