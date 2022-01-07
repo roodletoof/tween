@@ -1,3 +1,4 @@
+from __future__ import annotations
 import inspect
 import pytweening
 
@@ -17,8 +18,8 @@ def _make_generator_callable(gen):
     return lambda : next(gen)
 
 class Tween:
-    def __init__(self, container, key, is_object: bool, end_value: float, time: float, ease_type: str, delay: float, tween_instances_list: list['Tween']):
-        self.container = container
+    def __init__(self, container, key, is_object: bool, end_value: float, time: float, ease_type: str, delay: float, tween_instances_list: list[Tween]):
+        self.container = container # A list, dictionary or other object
         self.key = key
         self.container_not_dict_or_list = is_object
         
@@ -28,24 +29,13 @@ class Tween:
         
         self.ease_func = _function_dictionary[ease_type]
         
-        if self.container_not_dict_or_list:
-            self.start_value = getattr(container, key)
-        else:
-            self.start_value = container[key]
         self.end_value = end_value
-        self.difference = self.end_value - self.start_value
-        
         self.delete = False
-        
         self.tween_instances_list = tween_instances_list
-        
         self._first_time_this_runs = _make_generator_callable(_1_True_rest_is_False())
 
+
     def _ready_for_garbage_collection(self):
-        '''
-        Marks this tween to be deleted, and removes references to objects and list
-        so that the tween can be garbage collected.
-        '''
         del self.container
         del self.tween_instances_list
         self.delete = True
@@ -57,25 +47,31 @@ class Tween:
         else:
             self.container[self.key] = value
 
+
     def _delete_colliding_tweens(self):
         for tween_instance in self.tween_instances_list:
-            if tween_instance.container is self.container\
+            if tween_instance is not self\
+            and tween_instance.container is self.container\
             and tween_instance.key == self.key:
                 tween_instance._ready_for_garbage_collection()
             
 
     def _update(self, dt):
-        '''
-        Update the current value based on time passed since last update.
-        Will alter specified value of the container this Tween is attatched to.
-        '''
-
-        if self.delay >= 0:
+        if self.delay > 0:
             self.delay -= dt
             return
+        
+        dt -= self.delay
+        self.delay = 0
 
         if self._first_time_this_runs():
             self._delete_colliding_tweens()
+
+            if self.container_not_dict_or_list:
+                self.start_value = getattr(self.container, self.key)
+            else:
+                self.start_value = self.container[self.key]
+            self.difference = self.end_value - self.start_value
 
         if not self.delete:
             self.time_lived += dt
@@ -88,102 +84,77 @@ class Tween:
             
 
     def stop(self) -> None:
-        '''
-        Stop and delete tween.
-        '''
         self._ready_for_garbage_collection()
 
 
+class TweenController:
+    def __init__(self, tweengroup: Group, *args, **kwargs):
+        self.tweengroup = tweengroup
+        self.args = args
+        self.kwargs = kwargs
+        self.tween: Tween = None
+    
+    def play(self):
+        self.stop_tweens = self.tweengroup.to(*self.args, **self.kwargs)
 
-tweens = [] #Contains all instances of tween
+    def stop(self):
+        self.stop_tweens()
 
-def _to(container, key, end_value: float, time: float, ease_type: str, delay: float, group: list) -> Tween:
-    if isinstance(container, dict):
-        tween_instance = Tween(container, key, False, end_value, time, ease_type, delay, group)
-        group.append(tween_instance)
-        return tween_instance
-
-    elif isinstance(container, list):
-        if not isinstance(key, int):
-            raise ValueError("You must index the list with an int.")
-        tween_instance = Tween(container, key, False, end_value, time, ease_type, delay, group)
-        group.append(tween_instance)
-        return tween_instance
-
-    else:
-        if not isinstance(key, str):
-            raise ValueError("You must index the object with a string.")
-        tween_instance = Tween(container, key, True, end_value, time, ease_type, delay, group)
-        group.append(tween_instance)
-        return tween_instance
-
-def to(container, key, end_value: float, time: float, ease_type: str = 'linear', delay: float = 0.0) -> Tween:
-    '''
-    Create a tween object and add it to the default tween group.
-    The container argument can be a list, dictionary or object.
-    The end_value is the final value of the containers key when the tween in finished.
-    The time is how long the tween should take in seconds.
-    The ease_type is the type if tweening that should be used. Run the tween module to get a list of all ease_types.
-    The delay is how long the tween will wait to play.
-    Only one tween per object attribute will ever be active.
-    To restart a tween, this function must be called again.
-    All tweens become unusable after they are finished, and ready themselves to be garbage collected.
-    '''
-    return _to(container, key, end_value, time, ease_type, delay, tweens)
-
-def _update(passed_time: float, group: list[Tween]): #in seconds!
-    for tween_instance in group:
-        tween_instance._update(passed_time)
-
-    #delete all finished tweens
-    del_counter = 0
-    for index, tween in enumerate(group):
-        if tween.delete:
-            del_counter += 1
-        else:
-            group[index - del_counter] = tween
-    for _ in range(del_counter):
-        group.pop()
-
-def update(passed_time: float) -> None:
-    '''
-    dt is the number of seconds since last update.
-    Update all tweens in the default tween group.
-    This will call all appropriate functions attatched to tweens, and end finished tweens.
-    Finished tweens will be deleted from its group.
-    '''
-    _update(passed_time, tweens)
 
 
 class Group:
-    '''
-    A group of tweens.
-    The group has its own .to and .update methods.
-    This is usefull if you want to continue playing some tweens while pausing other tweens.
-    '''
     def __init__(self):
-        self.tweens = []
-    def to(self, container, key, end_value, time, ease_type = "linear", delay = 0.0) -> Tween:
+        self.tweens: list[Tween] = []
+
+   
+    def controllable(self, container, keys_and_values:dict, time:float, ease_type:str = 'easeOutQuad', delay:float = 0.0) -> TweenController:
+        return TweenController(self, container, keys_and_values, time, ease_type, delay)
+
+
+    def to(self, container, keys_and_values:dict, seconds:float, ease_type:str = 'easeOutQuad', delay:float = 0.0) -> function:
         '''
-        Create a tween object and add it to this tween group.
-        The container argument can be a list, dictionary or object.
-        The end_value is the final value of the containers key when the tween in finished.
-        The time is how long the tween should take in seconds.
-        The ease_type is the type if tweening that should be used. Run the tween module to get a list of all ease_types.
-        The delay is how long the tween will wait to play.
-        Only one tween per object attribute will ever be active.
-        To restart a tween, this function must be called again.
-        All tweens become unusable after they are finished, and ready themselves to be garbage collected.
+        Starts the tween(s), and returns a function to stop the tweens that started when this function was called.
         '''
-        _to(container, key, end_value, time, ease_type, delay, self.tweens)
+        new_tween_instances:list[Tween] = []
+        
+        for key, end_value in keys_and_values.items():
+            is_object = True
+            if isinstance(container, dict) or isinstance(container, list):
+                is_object = False
+            
+            tween_instance = Tween(container, key, is_object, end_value, seconds, ease_type, delay, self.tweens)
+            
+            self.tweens.append(tween_instance)
+            new_tween_instances.append(tween_instance)
+        
+        def stop_tweens():
+            for tween in new_tween_instances:
+                tween.stop()
+        
+        return stop_tweens
+    
+
     def update(self, dt) -> None:
-        '''
-        dt is the number of seconds since last update.
-        Update all tweens in this tween group.
-        This will call all appropriate functions attatched to tweens, and end finished tweens.
-        Finished tweens will be deleted from its group.
-        '''
-        _update(dt, self.tweens)
+        for tween_instance in self.tweens:
+            tween_instance._update(dt)
+
+        # Remove all finished tweens from the tween list
+        del_counter = 0
+        for index, tween in enumerate(self.tweens):
+            if tween.delete:
+                del_counter += 1
+            else:
+                self.tweens[index - del_counter] = tween
+        for _ in range(del_counter):
+            self.tweens.pop()
+
+_default_group = Group
+def controllable(*args, **kwargs):
+    _default_group(*args, **kwargs)
+def to(*args, **kwargs):
+    _default_group(*args, **kwargs)
+def update(*args, **kwargs):
+    _default_group.update(*args, **kwargs)
 
 
 def get_ease_types() -> tuple[str]:
@@ -191,3 +162,18 @@ def get_ease_types() -> tuple[str]:
     Returns a tuple of all available ease types.
     '''
     return tuple(_function_dictionary.keys())
+
+
+# TESTING
+if __name__ == '__main__':
+    t = Group()
+    man = {
+        'x' : 0,
+        'y' : 0,
+    }
+    t.to(man, {'x': 200, 'y': 400}, 5)
+    for _ in range(1,100):
+        print(f'{t.tweens = }')
+        t.update(.1)
+        print(f'{man = }')
+    print(get_ease_types())
