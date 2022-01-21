@@ -47,6 +47,12 @@ class Tween:
         else:
             self.container[self.key] = value
 
+    def _get_container_value(self):
+        if self.container_not_dict_or_list:
+            return getattr(self.container, self.key)
+        else:
+            return self.container[self.key]
+
 
     def _delete_colliding_tweens(self):
         for tween_instance in self.tween_instances_list:
@@ -68,11 +74,7 @@ class Tween:
 
         if self._first_time_this_runs():
             self._delete_colliding_tweens()
-
-            if self.container_not_dict_or_list:
-                self.start_value = getattr(self.container, self.key)
-            else:
-                self.start_value = self.container[self.key]
+            self.start_value = self._get_container_value()
             self.difference = self.end_value - self.start_value
 
         if not self.delete:
