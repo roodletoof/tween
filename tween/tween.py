@@ -92,12 +92,14 @@ class Tween:
 class Group:
     def __init__(self):
         self.tweens: list[Tween] = []
-        self.last_started_tween_finished_after = 0 #Seconds
+        self.last_tween_finished_at = 0 #Seconds
+        self.last_tween_started_at = 0 #Seconds
 
 
     def to(self, container, seconds:float, keys_and_values:dict, ease_type:str = 'easeOutQuad', delay:float = 0.0) -> function:
         '''
         Starts the tween(s), and returns a function to stop the tweens that started when this function was called.
+        Return function to stop tween.
         '''
         is_object = True
         if isinstance(container, dict) or isinstance(container, list):
@@ -114,21 +116,39 @@ class Group:
             for tween in new_tween_instances:
                 tween.stop()
         
-        self.last_started_tween_finished_after = delay + seconds
-        
+        self.last_tween_finished_at = delay + seconds
+        self.last_tween_started_at = delay
+
         return stop_tweens
 
 
     def after(self, container, seconds:float, keys_and_values:dict, ease_type:str = 'easeOutQuad', delay:float = 0.0) -> function:
-        delay = delay + self.last_started_tween_finished_after
+        '''
+        Initiate a tween that starts when the last tween created ends + given delay.
+        Returns function to stop tween.
+        '''
+        delay = delay + self.last_tween_finished_at
         return self.to(container, seconds, keys_and_values, ease_type, delay)
     
+    def at(self, container, seconds:float, keys_and_values:dict, ease_type:str = 'easeOutQuad', delay:float = 0.0) -> function:
+        '''
+        Initiate a tween that starts at the same time as the previous tween created + given delay.
+        Returns function to stop tween.
+        '''
+        delay = delay + self.last_tween_started_at
+        return self.to(container, seconds, keys_and_values, ease_type, delay)
 
     def update(self, dt) -> None:
+        '''
+        Update all tweens within this group.
+        dt = time passed in seconds since last update.
+        '''
+
         for tween_instance in self.tweens:
             tween_instance._update(dt)
 
-        self.last_started_tween_finished_after -= dt
+        self.last_tween_finished_at -= dt
+        self.last_tween_started_at -= dt
 
         # Remove all finished tweens from the tween list
         del_counter = 0
@@ -146,6 +166,8 @@ def to(*args, **kwargs) -> function:
     return _default_group.to(*args, **kwargs)
 def after(*args, **kwargs) -> function:
     return _default_group.after(*args, **kwargs)
+def at(*args, **kwargs) -> function:
+    return _default_group.at(*args, **kwargs)
 def update(*args, **kwargs) -> None:
     _default_group.update(*args, **kwargs)
 
