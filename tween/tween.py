@@ -34,6 +34,8 @@ class Tween:
         self.tween_instances_list = tween_instances_list
         self._first_time_this_runs = _make_generator_callable(_1_True_rest_is_False())
 
+        self.on_complete_functions = []
+
 
     def _ready_for_garbage_collection(self):
         del self.container
@@ -85,10 +87,26 @@ class Tween:
         if self.time_lived >= self.target_time:
             self._set_container_value(self.end_value)
             self._ready_for_garbage_collection()
+            for func in self.on_complete_functions:
+                func()
             
 
     def stop(self) -> None:
         self._ready_for_garbage_collection()
+
+    def on_complete(self, func: callable) -> None:
+        self.on_complete_functions.append(func)
+
+class Controller:
+    def __init__(self, tweens:list[Tween]):
+        self.tweens = tweens
+    
+    def stop(self) -> None:
+        for tween in self.tweens:
+            tween.stop()
+    
+    def on_complete(self, func:callable) -> None:
+        self.tweens[0].on_complete(func)
 
 
 class Group:
@@ -98,10 +116,10 @@ class Group:
         self.last_tween_started_at = 0 #Seconds
 
 
-    def to(self, container, seconds:float, keys_and_values:dict, ease_type:str = 'easeOutQuad', delay:float = 0.0) -> function:
+    def to(self, container, seconds:float, keys_and_values:dict, ease_type:str = 'easeOutQuad', delay:float = 0.0) -> Controller:
         '''
         Starts the tween(s), and returns a function to stop the tweens that started when this function was called.
-        Return function to stop tween.
+        Returns Controller obj.
         '''
         is_object = True
         if isinstance(container, dict) or isinstance(container, list):
@@ -114,17 +132,13 @@ class Group:
             self.tweens.append(tween_instance)
             new_tween_instances.append(tween_instance)
         
-        def stop_tweens():
-            for tween in new_tween_instances:
-                tween.stop()
-        
         self.last_tween_finished_at = delay + seconds
         self.last_tween_started_at = delay
 
-        return stop_tweens
+        return Controller(new_tween_instances)
 
 
-    def after(self, container, seconds:float, keys_and_values:dict, ease_type:str = 'easeOutQuad', delay:float = 0.0) -> function:
+    def after(self, container, seconds:float, keys_and_values:dict, ease_type:str = 'easeOutQuad', delay:float = 0.0) -> Controller:
         '''
         Initiate a tween that starts when the last tween created ends + given delay.
         Returns function to stop tween.
@@ -132,7 +146,7 @@ class Group:
         delay = delay + self.last_tween_finished_at
         return self.to(container, seconds, keys_and_values, ease_type, delay)
     
-    def at(self, container, seconds:float, keys_and_values:dict, ease_type:str = 'easeOutQuad', delay:float = 0.0) -> function:
+    def at(self, container, seconds:float, keys_and_values:dict, ease_type:str = 'easeOutQuad', delay:float = 0.0) -> Controller:
         '''
         Initiate a tween that starts at the same time as the previous tween created + given delay.
         Returns function to stop tween.
@@ -162,16 +176,7 @@ class Group:
         for _ in range(del_counter):
             self.tweens.pop()
 
-_default_group = Group()
-tweens = _default_group.tweens
-def to(*args, **kwargs) -> function:
-    return _default_group.to(*args, **kwargs)
-def after(*args, **kwargs) -> function:
-    return _default_group.after(*args, **kwargs)
-def at(*args, **kwargs) -> function:
-    return _default_group.at(*args, **kwargs)
-def update(*args, **kwargs) -> None:
-    _default_group.update(*args, **kwargs)
+main = Group()
 
 
 def get_ease_types() -> tuple[str]:
@@ -187,16 +192,16 @@ if __name__ == '__main__':
     length = 100
     marker = {'x':0}
     
-    to(marker, 5, {'x': length-1}, 'easeInOutQuad')
-    after(marker, 5, {'x': 0}, 'easeInOutQuad')
-    after(marker, 5, {'x': length/2}, 'easeInOutQuad')
-    
+    main.to(marker, 5, {'x': length-1}, 'easeInOutQuad')
+    main.after(marker, 5, {'x': 0}, 'easeInOutQuad')
+    last = main.after(marker, 5, {'x': length/2}, 'easeInOutQuad')
+    last.on_complete(lambda:print('\nFinished'))
     
     frametime = 1/60
     duration = 15
     for _ in range(int(duration/frametime)):
-        update(frametime)
         print('@'*round(marker['x'])+'-'*round(length-marker['x']-1), end='\r')
+        main.update(frametime)
         time.sleep(frametime)
     print()
 
