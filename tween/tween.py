@@ -114,6 +114,8 @@ class Group:
         self.tweens: list[Tween] = []
         self.last_tween_finished_at = 0 #Seconds
         self.last_tween_started_at = 0 #Seconds
+        # Both of these variables are relative to current time.
+        # So if Group.update(3) was called widthout any tweens starting, these variables would be -3
 
 
     def to(self, container, seconds:float, keys_and_values:dict, ease_type:str = 'easeOutQuad', delay:float = 0.0) -> Controller:
