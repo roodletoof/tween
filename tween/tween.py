@@ -14,52 +14,56 @@ class Tween:
     def __init__(self, container, key, is_object: bool, end_value: float, time: float, ease_func: EASE_FUNCTION, delay: float, tween_instances_list: list[Tween]):
         self.container = container # A list, dictionary or other object
         self.key = key
-        self.container_not_dict_or_list = is_object
-        
-        self.target_time = time
-        self.time_lived = 0.0
         self.delay = delay
+
+        self.__container_not_dict_or_list = is_object
         
-        self.ease_func = ease_func
+        self.__target_time = time
+        self.__time_lived = 0.0
+        
+        self.__ease_func = ease_func
        
-        self.end_value = end_value
+        self.__end_value = end_value
+        self.__tween_instances_list = tween_instances_list
+        self.__first_time_this_runs = _make_generator_callable(_1_True_rest_is_False())
+
+        self.__on_complete_functions = []
+        
         self.delete = False
-        self.tween_instances_list = tween_instances_list
-        self._first_time_this_runs = _make_generator_callable(_1_True_rest_is_False())
-
-        self.on_complete_functions = []
 
 
-    def _ready_for_garbage_collection(self):
+    def __ready_for_garbage_collection(self):
         del self.container
-        del self.tween_instances_list
+        del self.__tween_instances_list
         self.delete = True
 
 
-    def _set_container_value(self, value):
-        if self.container_not_dict_or_list:
+    def __set_container_value(self, value):
+        if self.__container_not_dict_or_list:
             setattr(self.container, self.key, value)
         else:
             self.container[self.key] = value
 
-    def _get_container_value(self):
-        if self.container_not_dict_or_list:
+    def __get_container_value(self):
+        if self.__container_not_dict_or_list:
             return getattr(self.container, self.key)
         else:
             return self.container[self.key]
 
 
-    def _delete_colliding_tweens(self):
-        for tween_instance in self.tween_instances_list:
-            if tween_instance.delete or tween_instance.delay > 0:
+    def __delete_colliding_tweens(self):
+        for tween_instance in self.__tween_instances_list:
+            if tween_instance.delete\
+            or tween_instance.delay > 0\
+            or tween_instance is self:
                 continue
-            if tween_instance is not self\
-            and tween_instance.container is self.container\
+            
+            if tween_instance.container is self.container\
             and tween_instance.key == self.key:
-                tween_instance._ready_for_garbage_collection()
+                tween_instance.stop()
             
 
-    def _update(self, dt):
+    def update(self, dt):
         if self.delay > 0:
             self.delay -= dt
             return
@@ -67,28 +71,28 @@ class Tween:
         dt -= self.delay
         self.delay = 0
 
-        if self._first_time_this_runs():
-            self._delete_colliding_tweens()
-            self.start_value = self._get_container_value()
-            self.difference = self.end_value - self.start_value
+        if self.__first_time_this_runs():
+            self.__delete_colliding_tweens()
+            self.__start_value = self.__get_container_value()
+            self.__difference = self.__end_value - self.__start_value
 
         if not self.delete:
-            self.time_lived += dt
-            tween_value = self.difference * self.ease_func(min(1, self.time_lived / self.target_time))
-            self._set_container_value(self.start_value + tween_value)
+            self.__time_lived += dt
+            tween_value = self.__difference * self.__ease_func(self.__time_lived / self.__target_time)
+            self.__set_container_value(self.__start_value + tween_value)
 
-        if self.time_lived >= self.target_time:
-            self._set_container_value(self.end_value)
-            self._ready_for_garbage_collection()
-            for func in self.on_complete_functions:
+        if self.__time_lived >= self.__target_time:
+            self.__ready_for_garbage_collection()
+            for func in self.__on_complete_functions:
                 func()
             
 
     def stop(self) -> None:
-        self._ready_for_garbage_collection()
+        self.__ready_for_garbage_collection()
 
     def on_complete(self, func: callable) -> None:
-        self.on_complete_functions.append(func)
+        self.__on_complete_functions.append(func)
+
 
 class Controller:
     def __init__(self, tweens:list[Tween]):
