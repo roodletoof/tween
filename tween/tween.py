@@ -1,13 +1,6 @@
 from __future__ import annotations
-import inspect
-import pytweening
-
-_function_dictionary = {} #Making all pytweening functions accessible by str name.
-for name, func in inspect.getmembers(pytweening, inspect.isfunction):
-    if not "_" == name[0] and\
-    not "getLine" == name and\
-    not "getPointOnLine" == name:
-        _function_dictionary[name] = func
+from tween.ease.helper import EASE_FUNCTION
+from tween import ease
 
 def _1_True_rest_is_False():
     yield True
@@ -18,7 +11,7 @@ def _make_generator_callable(gen):
     return lambda : next(gen)
 
 class Tween:
-    def __init__(self, container, key, is_object: bool, end_value: float, time: float, ease_type: str, delay: float, tween_instances_list: list[Tween]):
+    def __init__(self, container, key, is_object: bool, end_value: float, time: float, ease_func: EASE_FUNCTION, delay: float, tween_instances_list: list[Tween]):
         self.container = container # A list, dictionary or other object
         self.key = key
         self.container_not_dict_or_list = is_object
@@ -27,8 +20,8 @@ class Tween:
         self.time_lived = 0.0
         self.delay = delay
         
-        self.ease_func = _function_dictionary[ease_type]
-        
+        self.ease_func = ease_func
+       
         self.end_value = end_value
         self.delete = False
         self.tween_instances_list = tween_instances_list
@@ -118,7 +111,7 @@ class Group:
         # So if Group.update(3) was called widthout any tweens starting, these variables would be -3
 
 
-    def to(self, container, seconds:float, keys_and_values:dict, ease_type:str = 'easeOutQuad', delay:float = 0.0) -> Controller:
+    def to(self, container, seconds:float, keys_and_values:dict, ease_func:EASE_FUNCTION = ease.out.quad, delay:float = 0.0) -> Controller:
         '''
         Starts the tween(s), and returns a function to stop the tweens that started when this function was called.
         Returns Controller obj.
@@ -130,7 +123,7 @@ class Group:
         new_tween_instances:list[Tween] = []
 
         for key, end_value in keys_and_values.items():
-            tween_instance = Tween(container, key, is_object, end_value, seconds, ease_type, delay, self.tweens)
+            tween_instance = Tween(container, key, is_object, end_value, seconds, ease_func, delay, self.tweens)
             self.tweens.append(tween_instance)
             new_tween_instances.append(tween_instance)
         
@@ -140,21 +133,21 @@ class Group:
         return Controller(new_tween_instances)
 
 
-    def after(self, container, seconds:float, keys_and_values:dict, ease_type:str = 'easeOutQuad', delay:float = 0.0) -> Controller:
+    def after(self, container, seconds:float, keys_and_values:dict, ease_func:EASE_FUNCTION = ease.out.quad, delay:float = 0.0) -> Controller:
         '''
         Initiate a tween that starts when the last tween created ends + given delay.
         Returns function to stop tween.
         '''
         delay = delay + self.last_tween_finished_at
-        return self.to(container, seconds, keys_and_values, ease_type, delay)
+        return self.to(container, seconds, keys_and_values, ease_func, delay)
     
-    def at(self, container, seconds:float, keys_and_values:dict, ease_type:str = 'easeOutQuad', delay:float = 0.0) -> Controller:
+    def at(self, container, seconds:float, keys_and_values:dict, ease_func:EASE_FUNCTION = ease.out.quad, delay:float = 0.0) -> Controller:
         '''
         Initiate a tween that starts at the same time as the previous tween created + given delay.
         Returns function to stop tween.
         '''
         delay = delay + self.last_tween_started_at
-        return self.to(container, seconds, keys_and_values, ease_type, delay)
+        return self.to(container, seconds, keys_and_values, ease_func, delay)
 
     def update(self, dt) -> None:
         '''
@@ -179,31 +172,3 @@ class Group:
             self.tweens.pop()
 
 main = Group()
-
-
-def get_ease_types() -> tuple[str]:
-    '''
-    Returns a tuple of all available ease types.
-    '''
-    return tuple(_function_dictionary.keys())
-
-
-# TESTING
-if __name__ == '__main__':
-    import time
-    length = 100
-    marker = {'x':0}
-    
-    main.to(marker, 5, {'x': length-1}, 'easeInOutQuad')
-    main.after(marker, 5, {'x': 0}, 'easeInOutQuad')
-    last = main.after(marker, 5, {'x': length/2}, 'easeInOutQuad')
-    last.on_complete(lambda:print('\nFinished'))
-    
-    frametime = 1/60
-    duration = 15
-    for _ in range(int(duration/frametime)):
-        print('@'*round(marker['x'])+'-'*round(length-marker['x']-1), end='\r')
-        main.update(frametime)
-        time.sleep(frametime)
-    print()
-
