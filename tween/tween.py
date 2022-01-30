@@ -117,8 +117,8 @@ class Group:
 
     def to(self, container, seconds:float, keys_and_values:dict, ease_func:EASE_FUNCTION = ease.out.quad, delay:float = 0.0) -> Controller:
         '''
-        Starts the tween(s), and returns a function to stop the tweens that started when this function was called.
-        Returns Controller obj.
+        Starts the tween(s).
+        Returns Controller object.
         '''
         is_object = True
         if isinstance(container, dict) or isinstance(container, list):
@@ -140,7 +140,7 @@ class Group:
     def after(self, container, seconds:float, keys_and_values:dict, ease_func:EASE_FUNCTION = ease.out.quad, delay:float = 0.0) -> Controller:
         '''
         Initiate a tween that starts when the last tween created ends + given delay.
-        Returns function to stop tween.
+        Returns Controller object.
         '''
         delay = delay + self.last_tween_finished_at
         return self.to(container, seconds, keys_and_values, ease_func, delay)
@@ -148,7 +148,7 @@ class Group:
     def at(self, container, seconds:float, keys_and_values:dict, ease_func:EASE_FUNCTION = ease.out.quad, delay:float = 0.0) -> Controller:
         '''
         Initiate a tween that starts at the same time as the previous tween created + given delay.
-        Returns function to stop tween.
+        Returns Controller object.
         '''
         delay = delay + self.last_tween_started_at
         return self.to(container, seconds, keys_and_values, ease_func, delay)
