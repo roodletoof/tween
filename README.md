@@ -12,7 +12,7 @@ from pygame.locals import QUIT
 import tween
 
 pygame.init()
-screen = pygame.display.set_mode(400,400)
+screen = pygame.display.set_mode( (400,400) )
 clock = pygame.time.Clock()
 dt = 0.0
 
@@ -22,7 +22,7 @@ class Character:
     self.x = x
     self.y = y
 
-  def draw(surface):
+  def draw(self, surface):
     surface.blit(self.sprite, (self.x, self.y))
 
 hero_image = pygame.image.load("path/to/image.png")
@@ -38,7 +38,7 @@ def update(dt):
   tween.update(dt) #Updating all active tweens within the default group
 
 def draw(surface):
-  surface.fill(0,0,0)
+  surface.fill( (0,0,0) )
   hero.draw(surface)
   pygame.display.flip()
 
